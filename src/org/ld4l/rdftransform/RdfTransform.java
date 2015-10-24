@@ -1,14 +1,9 @@
 package org.ld4l.rdftransform;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 
-import org.apache.jena.rdf.model.Model;
-import org.apache.jena.riot.RDFDataMgr;
-import org.apache.jena.riot.RDFFormat;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class RdfTransform {
     
@@ -16,6 +11,7 @@ public class RdfTransform {
      * Indicates a problem with the command-line arguments.
      */
     private static class UsageException extends Exception {
+        private static final long serialVersionUID = 8231538290897327025L;
         UsageException(String message) {
             super(message);
         }
@@ -52,7 +48,7 @@ public class RdfTransform {
         transformer.transform();
         
         // TODO log4j2 not working *** 
-        System.out.println("Done!");
+        LOGGER.debug("Done!");
     }
         
 

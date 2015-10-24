@@ -18,8 +18,8 @@ import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.vocabulary.RDF;
 import org.apache.jena.vocabulary.RDFS;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 
 public class SkosRbmsVocabTransformer extends RdfDataTransformer {
@@ -102,7 +102,7 @@ public class SkosRbmsVocabTransformer extends RdfDataTransformer {
             String uri = subject.getURI();
             Statement stmt = subject.getProperty(prefLabelProp);
             if (stmt == null) {
-                //System.out.println("No skos:prefLabel for resource " + uri);
+                //LOGGER.debug("No skos:prefLabel for resource " + uri);
                 stmt = subject.getProperty(notationProp);
             }
             if (stmt != null) {
@@ -111,9 +111,9 @@ public class SkosRbmsVocabTransformer extends RdfDataTransformer {
                 concepts.put(label, subject.getURI());
                 // Add rdfs:label
                 assertions.add(subject, RDFS.label, literal);
-                //System.out.println(label + ": " + uri);
+                //LOGGER.debug(label + ": " + uri);
             } else {
-                //System.out.println("No skos:notation for resource " + uri);
+                //LOGGER.debug("No skos:notation for resource " + uri);
             }
 
         }
@@ -141,11 +141,11 @@ public class SkosRbmsVocabTransformer extends RdfDataTransformer {
 
         writeNewModel();
         
-        System.out.println("Number of concepts: " + (conceptNum + 1));
-        System.out.println("Number of schemes: " + (schemeNum + 1));
+        LOGGER.debug("Number of concepts: " + (conceptNum + 1));
+        LOGGER.debug("Number of schemes: " + (schemeNum + 1));
         
 //        for (Map.Entry<String, String> entry : concepts.entrySet()) {
-//            System.out.println(entry.getKey() + ": " + entry.getValue());
+//            LOGGER.debug(entry.getKey() + ": " + entry.getValue());
 //        }
                 
     }
@@ -228,7 +228,7 @@ public class SkosRbmsVocabTransformer extends RdfDataTransformer {
     private Resource createConcept(String conceptLabel) { 
         
         Resource concept = assertions.createResource(mintConceptUri());
-        System.out.println("Created concept with URI " + concept.getURI());
+        LOGGER.debug("Created concept with URI " + concept.getURI());
         assertions.add(concept, RDF.type, conceptClass);
         assertions.add(concept, RDFS.label, conceptLabel);
         assertions.add(concept, prefLabelProp, conceptLabel);
@@ -239,7 +239,7 @@ public class SkosRbmsVocabTransformer extends RdfDataTransformer {
         conceptNum++;
         // ASK JASON: Or just use RBMS_NS? Or put concepts in RBMS_NS + 
         // "concept/" namespace too?
-        return RBMS_NS + (conceptNum);
+        return RBMS_NS + conceptNum;
     }
     
     

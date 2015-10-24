@@ -9,8 +9,9 @@ import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.riot.RDFFormat;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 
 public abstract class RdfDataTransformer {
 
@@ -29,7 +30,7 @@ public abstract class RdfDataTransformer {
         model = ModelFactory.createDefaultModel();
         try {
             String canonicalPath = inputFile.getCanonicalPath();
-            System.out.println("Reading model from file " + canonicalPath);
+            LOGGER.debug("Reading model from file " + canonicalPath);
             model.read(canonicalPath);            
         } catch (Exception e) {
             e.printStackTrace();
@@ -48,7 +49,7 @@ public abstract class RdfDataTransformer {
 //    
 //    protected Model readModelFromFile(String filename) {
 //        //return RDFDataMgr.loadModel(filename);
-//        System.out.println("Reading file " + filename);
+//        LOGGER.debug("Reading file " + filename);
 //        Model model = ModelFactory.createDefaultModel() ; 
 //        model.read(filename);
 //        return model;
