@@ -47,8 +47,7 @@ public class RdfTransform {
                 new SkosRbmsVocabTransformer(inputFile, outputFile);
         transformer.transform();
         
-        // TODO log4j2 not working *** 
-        LOGGER.debug("Done!");
+        LOGGER.info("Done!");
     }
         
 

@@ -82,12 +82,11 @@ public class SkosRbmsVocabTransformer extends RdfDataTransformer {
         
         prefLabelProp = 
                 skosOntModel.getOntProperty(SKOS_NS + "prefLabel"); 
-        
-                     
+                            
     }
     
     private void loadConcepts() {
-
+        
         Property notationProp = 
                 skosOntModel.getOntProperty(SKOS_NS + "notation");
         
@@ -97,6 +96,9 @@ public class SkosRbmsVocabTransformer extends RdfDataTransformer {
         while (subjects.hasNext()) {     
             conceptNum++;
             Resource subject = subjects.nextResource();  
+            
+            assertions.add(subject, RDF.type, conceptClass);
+            
             String subjectUri = subject.getURI();
             Statement stmt = subject.getProperty(prefLabelProp);
             if (stmt == null) {
@@ -108,7 +110,9 @@ public class SkosRbmsVocabTransformer extends RdfDataTransformer {
             } else {
                 Literal literal = stmt.getLiteral();
                 String label = literal.getLexicalForm();
+
                 concepts.put(label, subjectUri);
+                
                 // Add rdfs:label
                 assertions.add(subject, RDFS.label, literal);
                 // LOGGER.debug(label + ": " + subjectUri);
