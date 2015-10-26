@@ -18,7 +18,7 @@
             <Policies>
                 <OnStartupTriggeringPolicy />
             </Policies>
-        </RollingFile> 
+        </RollingFile>
         -->
         <Console name="Console" target="SYSTEM_OUT">
             <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
@@ -26,7 +26,9 @@
     </Appenders>
     <Loggers>
         <Root level="error">
-            <AppenderRef ref="RollingFile"/>          
+            <!--
+            <AppenderRef ref="RollingFile"/>  
+            -->
         </Root>
         <Logger name="org.ld4l.rdftransform" level="debug">
             <AppenderRef ref="Console"/>

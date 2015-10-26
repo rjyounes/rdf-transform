@@ -11,7 +11,6 @@
         <CustomLevel name="DEV" intLevel="450" />
     </CustomLevels>  
     <Appenders>   
-        <!--
         <RollingFile name="RollingFile" fileName="log/rdf-transform.log"
             filePattern="log/$${date:yyyy-MM-dd}/bib2lod-%d{yyyy-MM-dd-HHmmss}.log">
             <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
@@ -19,14 +18,13 @@
                 <OnStartupTriggeringPolicy />
             </Policies>
         </RollingFile> 
-        -->
         <Console name="Console" target="SYSTEM_OUT">
             <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
         </Console>
     </Appenders>
     <Loggers>
         <Root level="error">
-            <AppenderRef ref="RollingFile"/>          
+            <AppenderRef ref="RollingFile"/>  
         </Root>
         <Logger name="org.ld4l.rdftransform" level="debug">
             <AppenderRef ref="Console"/>
