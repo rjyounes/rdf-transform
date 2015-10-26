@@ -12,6 +12,7 @@ import org.apache.jena.ontology.OntModelSpec;
 import org.apache.jena.rdf.model.Literal;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.Property;
+import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.ResIterator;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.Statement;
@@ -34,34 +35,30 @@ public class SkosRbmsVocabTransformer extends RdfDataTransformer {
     private static final String RBMS_SCHEME_NS = RBMS_NS + "scheme/";
     
     private OntModel skosOntModel;
+    
     private OntClass conceptClass;
     private OntClass conceptSchemeClass;
+    
     private Property prefLabelProp;
-    private Property notationProp;
-    private Property hasTopConceptProp;
-    private Property inSchemeProp;
-    private Property broaderProp;
-    private Property narrowerProp;
-    private Property relatedProp;
-    
-    private Map<String, String> conceptSchemes;
-    Map<String, String> concepts; 
-    
-    // Numbering starts from 0
-    private static int schemeNum = -1;    
-    private static int conceptNum = -1;
 
+
+    
+    // Map concept-to-concept property string values to Concept URIs
+    private Map<String, String> concepts; 
+
+    private int schemeNum;    
+    private int conceptNum;
+
+    
     public SkosRbmsVocabTransformer(File inputFile, File outputFile)  {
         super(inputFile, outputFile);
         
         loadSkosOntModel(); 
         loadOntResources();
-        
-        // Map hasTopConcept string values to ConceptScheme URIs
-        conceptSchemes = new HashMap<String, String>();
-        
-        loadConcepts();
-
+ 
+        // Numbering starts from 0
+        schemeNum = -1;
+        conceptNum = -1;
     }
     
     private void loadSkosOntModel() {
@@ -74,93 +71,108 @@ public class SkosRbmsVocabTransformer extends RdfDataTransformer {
         skosOntModel.read(SKOS_NS);
     }
     
+    /**
+     * Define OntResources needed by multiple methods.
+     */
     private void loadOntResources() {
 
         conceptClass = skosOntModel.createClass(SKOS_NS + "Concept");
         conceptSchemeClass = 
-                skosOntModel.createClass(SKOS_NS + "ConceptScheme");
-
-        prefLabelProp = skosOntModel.getOntProperty(SKOS_NS + "prefLabel"); 
-        notationProp = skosOntModel.getOntProperty(SKOS_NS + "notation");
-        hasTopConceptProp = 
-                skosOntModel.getOntProperty(SKOS_NS + "hasTopConcept");
-        inSchemeProp = skosOntModel.getOntProperty(SKOS_NS + "inScheme");                
-        broaderProp = skosOntModel.getOntProperty(SKOS_NS + "broader");                
-        narrowerProp = skosOntModel.getOntProperty(SKOS_NS + "narrower");                
-        relatedProp = skosOntModel.getOntProperty(SKOS_NS + "related");                       
+                skosOntModel.createClass(SKOS_NS + "ConceptScheme");   
+        
+        prefLabelProp = 
+                skosOntModel.getOntProperty(SKOS_NS + "prefLabel"); 
+        
+                     
     }
     
     private void loadConcepts() {
+
+        Property notationProp = 
+                skosOntModel.getOntProperty(SKOS_NS + "notation");
         
-        // Map concept-to-concept property string values to Concept URIs
-        concepts = new HashMap<String, String>();   
-        
+        concepts = new HashMap<String, String>();
+
         ResIterator subjects = model.listSubjects();
         while (subjects.hasNext()) {     
             conceptNum++;
-            Resource subject = subjects.nextResource();         
-            String uri = subject.getURI();
+            Resource subject = subjects.nextResource();  
+            String subjectUri = subject.getURI();
             Statement stmt = subject.getProperty(prefLabelProp);
             if (stmt == null) {
-                //LOGGER.debug("No skos:prefLabel for resource " + uri);
+                LOGGER.info("No skos:prefLabel for resource " + subjectUri);
                 stmt = subject.getProperty(notationProp);
             }
-            if (stmt != null) {
+            if (stmt == null) {
+                LOGGER.info("No skos:notation for resource " + subjectUri);            
+            } else {
                 Literal literal = stmt.getLiteral();
                 String label = literal.getLexicalForm();
-                concepts.put(label, subject.getURI());
+                concepts.put(label, subjectUri);
                 // Add rdfs:label
                 assertions.add(subject, RDFS.label, literal);
-                //LOGGER.debug(label + ": " + uri);
-            } else {
-                //LOGGER.debug("No skos:notation for resource " + uri);
-            }
+                // LOGGER.debug(label + ": " + subjectUri);
 
+            }
         }
     }
     
     public void transform() {
-
-        ResIterator subjects = model.listSubjects();
-        while (subjects.hasNext()) {
-            
-            Resource subject = subjects.nextResource(); 
-            
-            // Assert that every resource is a skos:Concept
-            assertions.add(subject, RDF.type, conceptClass);
-            
-            // TODO Combine methods for transforming hasTopConcept and other 
-            // datatype props - they're mostly the same.
-            
-            transformHasTopConcept(subject);
-            
-            transformDatatypePropToObjectProp(subject, broaderProp);
-            transformDatatypePropToObjectProp(subject, narrowerProp);
-            transformDatatypePropToObjectProp(subject, relatedProp);
-        }
+        
+        loadConcepts();
+        
+        createConceptSchemes();
+        
+        transformStringToThing(skosOntModel.getOntProperty(SKOS_NS + "broader"));
+                   
+        transformStringToThing(skosOntModel.getOntProperty(SKOS_NS + "narrower")); 
+        
+        transformStringToThing(skosOntModel.getOntProperty(SKOS_NS + "related"));
 
         writeNewModel();
         
         LOGGER.debug("Number of concepts: " + (conceptNum + 1));
         LOGGER.debug("Number of schemes: " + (schemeNum + 1));
         
-//        for (Map.Entry<String, String> entry : concepts.entrySet()) {
-//            LOGGER.debug(entry.getKey() + ": " + entry.getValue());
-//        }
                 
     }
    
-    private void transformHasTopConcept(Resource subject) {
+    /**
+     * Change:
+     * :concept skos:hasTopConcept "label" .
+     * 
+     * to:
+     * :concept skos:inScheme :conceptscheme .
+     * :conceptscheme a skos:ConceptScheme ;
+     * rdfs:label "label" .
+     * 
+     */
+    private void createConceptSchemes() {
+
+        Property hasTopConceptProp = 
+                skosOntModel.getOntProperty(SKOS_NS + "hasTopConcept");
+        Property inSchemeProp =
+                skosOntModel.getOntProperty(SKOS_NS + "inScheme");  
         
+        // Map concept-to-concept property string values to Concept URIs, to
+        // determine whether to create a new concept scheme or re-use an 
+        // existing one.
+        Map<String, String> conceptSchemes = new HashMap<String, String>();
+                  
         // Change literal values for hasTopConcept to a ConceptScheme
         // resource and an inScheme assertion.
-        StmtIterator hasTopConceptStmts = 
-                subject.listProperties(hasTopConceptProp);
-        while (hasTopConceptStmts.hasNext()) {
-            Statement stmt = hasTopConceptStmts.nextStatement();
+        StmtIterator statements = 
+                model.listStatements((Resource) null, hasTopConceptProp, 
+                        (RDFNode) null);
+
+        while (statements.hasNext()) {
+            Statement stmt = statements.nextStatement();
 
             // Remove the faulty statement
             retractions.add(stmt);
+            
+            Resource subject = stmt.getSubject();
+
             String schemeLabel = stmt.getLiteral().getLexicalForm();                    
             String schemeUri;
             Resource scheme;
@@ -174,13 +186,14 @@ public class SkosRbmsVocabTransformer extends RdfDataTransformer {
                 scheme = createScheme(schemeLabel);
                 conceptSchemes.put(schemeLabel, scheme.getURI());
             }
+            
             assertions.add(subject, inSchemeProp, scheme);
 
         }
     }
     
     private Resource createScheme(String schemeLabel) { 
-           
+       
         Resource scheme = assertions.createResource(mintSchemeUri());
         assertions.add(scheme, RDF.type, conceptSchemeClass);
         assertions.add(scheme, RDFS.label, schemeLabel);
@@ -194,17 +207,28 @@ public class SkosRbmsVocabTransformer extends RdfDataTransformer {
         // "concept/" namespace too?
         return RBMS_SCHEME_NS + schemeNum;
     }
-    
-    private void transformDatatypePropToObjectProp(Resource subject, 
-            Property prop) {
+
+    /**
+     * Change:
+     * :concept1 prop "label" .
+     * 
+     * to:
+     * :concept1 prop :concept2.
+     * 
+     */
+    private void transformStringToThing(Property prop) {
 
         StmtIterator stmts = 
-                subject.listProperties(prop);
+                model.listStatements((Resource) null, prop, (RDFNode) null); 
+                                     
         while (stmts.hasNext()) {
             Statement stmt = stmts.nextStatement();
 
             // Remove the faulty statement
             retractions.add(stmt);
+
+            Resource subject = stmt.getSubject();
+            
             String conceptLabel = stmt.getLiteral().getLexicalForm();                    
             String conceptUri;
             Resource concept;
@@ -213,18 +237,24 @@ public class SkosRbmsVocabTransformer extends RdfDataTransformer {
             if (concepts.containsKey(conceptLabel)) {
                 conceptUri = concepts.get(conceptLabel);
                 concept = assertions.getResource(conceptUri);
+                assertions.add(subject, prop, concept);
+            }
+            
+            /*
             // New string value 
-            // NB This case doesn't appear in the data
+            // Commenting out because this case doesn't appear in the data
             } else {
                 concept = createConcept(conceptLabel);
                 concepts.put(conceptLabel, concept.getURI());
             }
             assertions.add(subject, prop, concept);
+            */
 
         }
        
     }
     
+    /*
     private Resource createConcept(String conceptLabel) { 
         
         Resource concept = assertions.createResource(mintConceptUri());
@@ -241,6 +271,7 @@ public class SkosRbmsVocabTransformer extends RdfDataTransformer {
         // "concept/" namespace too?
         return RBMS_NS + conceptNum;
     }
+    */
     
     
 }
