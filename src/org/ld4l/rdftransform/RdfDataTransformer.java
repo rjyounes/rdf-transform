@@ -3,7 +3,6 @@ package org.ld4l.rdftransform;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.IOException;
 
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
@@ -18,18 +17,20 @@ public abstract class RdfDataTransformer {
     private static final Logger LOGGER = 
             LogManager.getLogger(RdfDataTransformer.class);  
     
-    private final File outputFile;
+    private final File outfile;
+    private final RDFFormat format;
     
     protected Model model;
     protected Model assertions;
     protected Model retractions;
     
-    public RdfDataTransformer(File inputFile, File outputFile) {
-        this.outputFile = outputFile;
+    public RdfDataTransformer(File infile, File outfile, RDFFormat format) {
+        this.outfile = outfile;
+        this.format = format;
         
         model = ModelFactory.createDefaultModel();
         try {
-            String canonicalPath = inputFile.getCanonicalPath();
+            String canonicalPath = infile.getCanonicalPath();
             LOGGER.debug("Reading model from file " + canonicalPath);
             model.read(canonicalPath);            
         } catch (Exception e) {
@@ -40,6 +41,8 @@ public abstract class RdfDataTransformer {
         assertions = ModelFactory.createDefaultModel();
         retractions = ModelFactory.createDefaultModel();
     }
+    
+
 
     public abstract void transform();
     
@@ -68,9 +71,10 @@ public abstract class RdfDataTransformer {
     private void writeModelToFile() {
         
         FileOutputStream outStream;
+
         try {
-            outStream = new FileOutputStream(outputFile, false);
-            RDFDataMgr.write(outStream, model, RDFFormat.RDFXML);
+            outStream = new FileOutputStream(outfile, false);
+            RDFDataMgr.write(outStream, model, format);
                     
         } catch (FileNotFoundException e) {
             // TODO Auto-generated catch block

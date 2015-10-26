@@ -17,6 +17,7 @@ import org.apache.jena.rdf.model.ResIterator;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.rdf.model.StmtIterator;
+import org.apache.jena.riot.RDFFormat;
 import org.apache.jena.vocabulary.RDF;
 import org.apache.jena.vocabulary.RDFS;
 import org.apache.logging.log4j.LogManager;
@@ -50,8 +51,8 @@ public class SkosRbmsVocabTransformer extends RdfDataTransformer {
     private int conceptNum;
 
     
-    public SkosRbmsVocabTransformer(File inputFile, File outputFile)  {
-        super(inputFile, outputFile);
+    public SkosRbmsVocabTransformer(File infile, File outfile, RDFFormat format)  {
+        super(infile, outfile, format);
         
         loadSkosOntModel(); 
         loadOntResources();
